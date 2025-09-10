@@ -6,6 +6,7 @@ const nextConfig = {
   images: {
     domains: ['images.pexels.com'],
   },
+  output: 'export', // Static Pages
 }
 
 module.exports = nextConfig
