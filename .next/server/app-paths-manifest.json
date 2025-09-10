@@ -1,5 +1,6 @@
 {
+  "/profile/page": "app/profile/page.js",
   "/report/page": "app/report/page.js",
-  "/signin/page": "app/signin/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/community/page": "app/community/page.js",
+  "/admin/page": "app/admin/page.js"
 }

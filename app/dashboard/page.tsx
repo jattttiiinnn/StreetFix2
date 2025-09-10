@@ -3,15 +3,11 @@
 import { motion } from 'framer-motion'
 import { Award, Bell, Calendar, CheckCircle, Clock, MapPin, Star, TrendingUp, Upload, Users, Zap } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-)
 
 interface Report {
   id: string;
@@ -20,8 +16,7 @@ interface Report {
   category: string;
   status: 'pending' | 'verified' | 'resolved' | 'rejected';
   priority: 'low' | 'medium' | 'high';
-  image_data: string | null;
-  image_mime_type: string | null;
+  image_path: string | null;
   location: string;
   address: string;
   reporter_id: string;
@@ -43,12 +38,29 @@ interface Badge {
 export default function DashboardPage() {
   const [userReports, setUserReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [badges] = useState<Badge[]>([
-    { name: 'First Reporter', icon: Star, earned: true, description: 'Submitted your first report' },
-    { name: 'Community Hero', icon: Users, earned: true, description: 'Helped resolve 10+ issues' },
+  const [badges, setBadges] = useState<Badge[]>([
+    { name: 'First Reporter', icon: Star, earned: false, description: 'Submitted your first report' },
+    { name: 'Community Hero', icon: Users, earned: false, description: 'Helped resolve 10+ issues' },
     { name: 'Eagle Eye', icon: Zap, earned: false, description: 'Report 50+ verified issues' },
     { name: 'City Guardian', icon: Award, earned: false, description: 'Top 10 reporter this month' }
   ]);
+
+  // Update badges based on user reports
+  useEffect(() => {
+    if (userReports.length > 0) {
+      const resolvedCount = userReports.filter(r => r.status === 'resolved').length;
+      
+      setBadges(prev => prev.map(badge => {
+        if (badge.name === 'First Reporter' && userReports.length > 0) {
+          return { ...badge, earned: true };
+        }
+        if (badge.name === 'Community Hero' && resolvedCount >= 10) {
+          return { ...badge, earned: true };
+        }
+        return badge;
+      }));
+    }
+  }, [userReports]);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -60,17 +72,16 @@ export default function DashboardPage() {
         const { data: reports, error } = await supabase
           .from('reports')
           .select('*')
-          .eq('reporter_id', user.id)
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        
-        // Format reports with image URLs
+
+        // Format reports with image paths and dates
         const formattedReports = reports.map(report => ({
           ...report,
-          image: report.image_data 
-            ? `data:${report.image_mime_type};base64,${report.image_data}`
-            : null,
+          // Use the image_path directly as it's already a public-relative path
+          image: report.image_path || null,
           date: new Date(report.created_at).toISOString().split('T')[0],
           // Add mock tokens based on status for demo purposes
           tokens: report.status === 'resolved' ? 75 : report.status === 'verified' ? 50 : 0
