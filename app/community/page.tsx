@@ -172,8 +172,8 @@ export default function CommunityPage() {
 
   // Get unique cities for suggestions
   const uniqueCities = useMemo(() => {
-    return [...new Set(communityReports.map(report => report.city))].sort()
-  }, [])
+    return Array.from(new Set(communityReports.map(report => report.city))).sort()
+  }, [communityReports])
 
   // Filter and sort reports
   const filteredReports = useMemo(() => {

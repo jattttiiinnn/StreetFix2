@@ -2,72 +2,123 @@
 
 import { motion } from 'framer-motion'
 import { Award, Bell, Calendar, CheckCircle, Clock, MapPin, Star, TrendingUp, Upload, Users, Zap } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { createClient } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 
-const userReports = [
-  {
-    id: 'UR-2024-1234',
-    title: 'Large pothole on Main Street',
-    category: 'Potholes',
-    status: 'resolved',
-    date: '2024-01-15',
-    image: 'https://images.pexels.com/photos/163016/highway-the-way-forward-road-marking-163016.jpeg?auto=compress&cs=tinysrgb&w=400',
-    location: '123 Main St, Downtown',
-    tokens: 75
-  },
-  {
-    id: 'UR-2024-1235',
-    title: 'Garbage dump near park',
-    category: 'Garbage Dumps',
-    status: 'verified',
-    date: '2024-01-18',
-    image: 'https://images.pexels.com/photos/2827392/pexels-photo-2827392.jpeg?auto=compress&cs=tinysrgb&w=400',
-    location: 'Central Park Area',
-    tokens: 50
-  },
-  {
-    id: 'UR-2024-1236',
-    title: 'Stray dog in residential area',
-    category: 'Stray Animals',
-    status: 'pending',
-    date: '2024-01-20',
-    image: 'https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&w=400',
-    location: 'Oak Street Neighborhood',
-    tokens: 0
-  }
-]
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+)
 
-const badges = [
-  { name: 'First Reporter', icon: Star, earned: true, description: 'Submitted your first report' },
-  { name: 'Community Hero', icon: Users, earned: true, description: 'Helped resolve 10+ issues' },
-  { name: 'Eagle Eye', icon: Zap, earned: false, description: 'Report 50+ verified issues' },
-  { name: 'City Guardian', icon: Award, earned: false, description: 'Top 10 reporter this month' }
-]
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'pending': return 'bg-yellow-500'
-    case 'verified': return 'bg-blue-500'
-    case 'resolved': return 'bg-green-500'
-    default: return 'bg-gray-500'
-  }
+interface Report {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  status: 'pending' | 'verified' | 'resolved' | 'rejected';
+  priority: 'low' | 'medium' | 'high';
+  image_data: string | null;
+  image_mime_type: string | null;
+  location: string;
+  address: string;
+  reporter_id: string;
+  confidence: number;
+  created_at: string;
+  updated_at: string;
+  image?: string | null;
+  date?: string;
+  tokens?: number;
 }
 
-const getStatusText = (status: string) => {
-  switch (status) {
-    case 'pending': return 'Under Review'
-    case 'verified': return 'Verified'
-    case 'resolved': return 'Resolved'
-    default: return 'Unknown'
-  }
+interface Badge {
+  name: string;
+  icon: any;
+  earned: boolean;
+  description: string;
 }
 
 export default function DashboardPage() {
-  const totalTokens = userReports.reduce((sum, report) => sum + report.tokens, 0)
+  const [userReports, setUserReports] = useState<Report[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [badges] = useState<Badge[]>([
+    { name: 'First Reporter', icon: Star, earned: true, description: 'Submitted your first report' },
+    { name: 'Community Hero', icon: Users, earned: true, description: 'Helped resolve 10+ issues' },
+    { name: 'Eagle Eye', icon: Zap, earned: false, description: 'Report 50+ verified issues' },
+    { name: 'City Guardian', icon: Award, earned: false, description: 'Top 10 reporter this month' }
+  ]);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        setIsLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: reports, error } = await supabase
+          .from('reports')
+          .select('*')
+          .eq('reporter_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        // Format reports with image URLs
+        const formattedReports = reports.map(report => ({
+          ...report,
+          image: report.image_data 
+            ? `data:${report.image_mime_type};base64,${report.image_data}`
+            : null,
+          date: new Date(report.created_at).toISOString().split('T')[0],
+          // Add mock tokens based on status for demo purposes
+          tokens: report.status === 'resolved' ? 75 : report.status === 'verified' ? 50 : 0
+        }));
+        
+        setUserReports(formattedReports);
+      } catch (error) {
+        console.error('Error fetching reports:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, []);
+
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'pending': return 'bg-yellow-500';
+    case 'verified': return 'bg-blue-500';
+    case 'resolved': return 'bg-green-500';
+    case 'rejected': return 'bg-red-500';
+    default: return 'bg-gray-500';
+  }
+};
+
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'pending': return 'Under Review';
+    case 'verified': return 'Verified';
+    case 'resolved': return 'Resolved';
+    case 'rejected': return 'Rejected';
+    default: return 'Unknown';
+  }
+};
+
+  const totalTokens = userReports.reduce((sum, report) => sum + (report.tokens || 0), 0)
   const resolvedReports = userReports.filter(report => report.status === 'resolved').length
   const pendingReports = userReports.filter(report => report.status === 'pending').length
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/30 py-8">
@@ -181,11 +232,13 @@ export default function DashboardPage() {
                       transition={{ delay: 0.6 + index * 0.1 }}
                       className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
-                      <img
-                        src={report.image}
-                        alt={report.title}
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
+                      {report.image && (
+                        <img
+                          src={report.image}
+                          alt={report.title}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                      )}
                       <div className="flex-1">
                         <h3 className="font-semibold">{report.title}</h3>
                         <p className="text-sm text-muted-foreground">{report.location}</p>

@@ -1,15 +1,34 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Menu, X, Moon, Sun, Bell, User, MapPin } from 'lucide-react'
+import { Menu, X, Moon, Sun, Bell, User as UserIcon, MapPin } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import SignOutButton from './auth/SignOutButton';
+import { User } from '@supabase/supabase-js';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [session, setSession] = useState<{ user: any } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const supabase = createClientComponentClient()
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setLoading(false)
+    })
+
+    return () => {
+      subscription?.unsubscribe()
+    }
+  }, [])
+
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
 
@@ -91,10 +110,20 @@ export function Header() {
                 </span>
               </Button>
               
-              <Button variant="ghost" className="flex items-center space-x-2 rounded-lg">
-                <User className="h-5 w-5" />
-                <span className="text-sm font-medium">Profile</span>
-              </Button>
+              {session ? (
+                <Button variant="ghost" className="flex items-center space-x-2 rounded-lg" asChild>
+                  <Link href="/profile">
+                    <UserIcon className="h-5 w-5" />
+                    <span className="text-sm font-medium">Profile</span>
+                  </Link>
+                </Button>
+              ) : (
+                <Button variant="ghost" className="flex items-center space-x-2 rounded-lg" asChild>
+                  <Link href="/signin">
+                    <span className="text-sm font-medium">Sign In</span>
+                  </Link>
+                </Button>
+              )}
             </div>
 
             {/* Mobile menu button */}
@@ -138,12 +167,27 @@ export function Header() {
                 </Link>
               ))}
               <div className="pt-2 border-t">
-                <Button variant="ghost" className="w-full justify-start">
-                  Notifications (3)
+                <Button variant="ghost" className="w-full justify-start" asChild>
+                  <Link href="/notifications" onClick={() => setIsMenuOpen(false)}>
+                    Notifications (3)
+                  </Link>
                 </Button>
-                <Button variant="ghost" className="w-full justify-start">
-                  Profile
-                </Button>
+                {session ? (
+                  <>
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                      <Link href="/profile" onClick={() => setIsMenuOpen(false)}>
+                        My Profile
+                      </Link>
+                    </Button>
+                    <SignOutButton className="w-full justify-start" variant="ghost" />
+                  </>
+                ) : (
+                  <Button variant="ghost" className="w-full justify-start" asChild>
+                    <Link href="/signin" onClick={() => setIsMenuOpen(false)}>
+                      Sign In
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>
