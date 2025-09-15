@@ -470,7 +470,7 @@ export default function ReportPage() {
   const [preview, setPreview] = useState<string>('')
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
-  const [location, setLocation] = useState('Auto-detecting location...')
+  const [location, setLocation] = useState('')
   const [analysisStarted, setAnalysisStarted] = useState(false)
   const [analysisComplete, setAnalysisComplete] = useState(false)
   const [confidence, setConfidence] = useState(0)
@@ -555,17 +555,17 @@ export default function ReportPage() {
       { delay: 2000, confidence: 95 }
     ]
 
-    analysisSteps.forEach((step, index) => {
-      setTimeout(() => {
-        setConfidence(step.confidence)
-        if (index === analysisSteps.length - 1) {
-          setAnalysisComplete(true)
-          setDetectedIssue('Pothole')
-          setCategory('Potholes')
-          setLocation('123 Main St, Downtown District')
-        }
-      }, step.delay)
-    })
+    // analysisSteps.forEach((step, index) => {
+    //   setTimeout(() => {
+    //     setConfidence(step.confidence)
+    //     if (index === analysisSteps.length - 1) {
+    //       setAnalysisComplete(true)
+    //       setDetectedIssue('Pothole')
+    //       setCategory('Potholes')
+    //       setLocation('123 Main St, Downtown District')
+    //     }
+    //   }, step.delay)
+    // })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -819,7 +819,7 @@ export default function ReportPage() {
               </CardContent>
             </Card>
 
-            {analysisStarted && (
+            {/* {analysisStarted && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
                 <Card className="shadow-lg">
                   <CardHeader>
@@ -852,7 +852,7 @@ export default function ReportPage() {
                   </CardContent>
                 </Card>
               </motion.div>
-            )}
+            )} */}
           </motion.div>
 
           <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
