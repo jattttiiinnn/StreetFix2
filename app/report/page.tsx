@@ -184,6 +184,7 @@ export default function ReportPage() {
         console.error('Error processing file:', error);
         throw new Error(error instanceof Error ? error.message : 'Failed to process the image file');
       }
+      
 
       const reportData = {
         title: detectedIssue || category,
@@ -339,7 +340,7 @@ export default function ReportPage() {
               </CardContent>
             </Card>
 
-            {analysisStarted && (
+            {/* {analysisStarted && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
                 <Card className="shadow-lg">
                   <CardHeader>
@@ -372,7 +373,7 @@ export default function ReportPage() {
                   </CardContent>
                 </Card>
               </motion.div>
-            )}
+            )} */}
           </motion.div>
 
           <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>

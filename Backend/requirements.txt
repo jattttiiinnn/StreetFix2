@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pillow
+transformers
+torch
+google-generativeai
+python-multipart
