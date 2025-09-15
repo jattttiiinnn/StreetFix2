@@ -1,6 +1,10 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
   "/profile/page": "app/profile/page.js",
   "/report/page": "app/report/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/signin/page": "app/signin/page.js",
   "/community/page": "app/community/page.js",
-  "/admin/page": "app/admin/page.js"
+  "/api/upload/route": "app/api/upload/route.js",
+  "/rewards/page": "app/rewards/page.js"
 }

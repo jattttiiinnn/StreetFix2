@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from 'react'
-import { supabase } from '@/lib/supabase/client'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { motion } from 'framer-motion'
 import { Upload, MapPin, Camera, CheckCircle, Loader2, AlertCircle, Zap, FileImage } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress'
 
 export default function ReportPage() {
+  const supabase = createClientComponentClient();
   const [dragActive, setDragActive] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string>('')
@@ -132,54 +133,56 @@ export default function ReportPage() {
     setIsSubmitting(true)
 
     try {
-      // Get session but don't require login
-      const { data: { session } } = await supabase.auth.getSession()
-      setSessionData(session)
-      const user = session?.user
-      
-      const fileExt = selectedFile.name.split('.').pop() || 'jpg'
-      const timestamp = Date.now()
-      const fileName = `report-${timestamp}.${fileExt}`
-      
+      // Get the current authenticated user reliably
+      const { data: { user } } = await supabase.auth.getUser();
+      setSessionData(user);
+      if (!user) {
+        throw new Error('You must be logged in to submit a report.');
+      }
+
+      const fileExt = selectedFile.name.split('.').pop() || 'jpg';
+      const timestamp = Date.now();
+      const fileName = `report-${timestamp}.${fileExt}`;
+
       // Define publicUrl outside the try block so it's accessible for reportData
-      let publicUrl = ''
-      
+      let publicUrl = '';
+
       try {
         // Validate file again before processing
         if (!selectedFile) {
-          throw new Error('No file selected')
+          throw new Error('No file selected');
         }
-        
-        const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+
+        const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!validImageTypes.includes(selectedFile.type)) {
-          throw new Error('Invalid file type. Please select a valid image file.')
+          throw new Error('Invalid file type. Please select a valid image file.');
         }
-        
+
         if (selectedFile.size > 5 * 1024 * 1024) {
-          throw new Error('File size exceeds 5MB limit.')
+          throw new Error('File size exceeds 5MB limit.');
         }
-        
+
         // Upload the file to the server using the API endpoint
-        const formData = new FormData()
-        formData.append('file', selectedFile)
-        
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
-        })
-        
+        });
+
         if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json()
-          throw new Error(`Upload failed: ${errorData.error || uploadResponse.statusText}`)
+          const errorData = await uploadResponse.json();
+          throw new Error(`Upload failed: ${errorData.error || uploadResponse.statusText}`);
         }
-        
-        const uploadResult = await uploadResponse.json()
-        
+
+        const uploadResult = await uploadResponse.json();
+
         // Use the public URL returned from the API
-        publicUrl = uploadResult.publicUrl
+        publicUrl = uploadResult.publicUrl;
       } catch (error) {
-        console.error('Error processing file:', error)
-        throw new Error(error instanceof Error ? error.message : 'Failed to process the image file')
+        console.error('Error processing file:', error);
+        throw new Error(error instanceof Error ? error.message : 'Failed to process the image file');
       }
 
       const reportData = {
@@ -187,57 +190,45 @@ export default function ReportPage() {
         description,
         location: location || 'Location not specified',
         status: 'pending',
-        reporter_id: user?.id || null, // Use reporter_id instead of user_id to match the table schema
+        reporter_id: user.id, // Always set to the current user's id
         image_path: publicUrl,
         category,
         priority: 'medium',
         confidence: confidence || 0
-        // Remove tokens field as it's not in the schema
-      }
+      };
 
       // Log the report data for debugging
-      console.log('Submitting report data:', reportData)
-      
-      try {
-        // Ensure reporter_id is null if user is not authenticated
-        // This prevents foreign key constraint errors
-        if (!user?.id) {
-          reportData.reporter_id = null;
-        }
+      console.log('Submitting report data:', reportData);
 
-        console.log('Final report data before submission:', reportData);
-        
+      try {
         const { data, error } = await supabase
           .from('reports')
           .insert([reportData])
-          .select()
+          .select();
 
         if (error) {
           // Error occurred during database insertion
-          console.error('Supabase insert error:', error)
-          throw new Error(`Database error: ${error.message || error.details || 'Unknown database error'}`)
+          console.error('Supabase insert error:', error);
+          throw new Error(`Database error: ${error.message || error.details || 'Unknown database error'}`);
         }
-        
+
         if (!data || data.length === 0) {
-          throw new Error('Report was not saved properly')
+          throw new Error('Report was not saved properly');
         }
-        
-        console.log('Report submitted successfully:', data)
+
+        console.log('Report submitted successfully:', data);
       } catch (dbError) {
-        console.error('Database operation failed:', dbError)
-        throw dbError
+        console.error('Database operation failed:', dbError);
+        throw dbError;
       }
 
-      setSubmitted(true)
+      setSubmitted(true);
     } catch (error) {
-      console.error('Submission error:', error)
-      
+      console.error('Submission error:', error);
       // Provide more specific error messages based on the error type
       let errorMessage = 'Unknown error';
-      
       if (error instanceof Error) {
         errorMessage = error.message;
-        
         // Check for specific error patterns
         if (errorMessage.includes('foreign key constraint')) {
           errorMessage = 'Authentication required to submit reports';

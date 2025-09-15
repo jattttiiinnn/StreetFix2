@@ -1,136 +1,16 @@
 "use client"
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Search, MapPin, Calendar, User, Filter, Eye, TrendingUp, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import {
+  Search, MapPin, Calendar, User, Filter, Eye,
+  TrendingUp, AlertTriangle, CheckCircle, Clock
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-
-// Mock data for community reports
-const communityReports = [
-  {
-    id: 'CR-2024-1001',
-    title: 'Large pothole causing traffic issues',
-    description: 'Deep pothole on main road causing vehicles to swerve dangerously',
-    reporter: 'John Smith',
-    city: 'New York',
-    location: 'Broadway & 42nd Street',
-    category: 'Potholes',
-    status: 'pending',
-    priority: 'high',
-    date: '2024-01-22',
-    image: 'https://images.pexels.com/photos/163016/highway-the-way-forward-road-marking-163016.jpeg?auto=compress&cs=tinysrgb&w=400',
-    votes: 24,
-    comments: 8
-  },
-  {
-    id: 'CR-2024-1002',
-    title: 'Overflowing garbage bins at bus stop',
-    description: 'Multiple garbage bins overflowing, creating unsanitary conditions',
-    reporter: 'Sarah Johnson',
-    city: 'Los Angeles',
-    location: 'Sunset Boulevard Bus Stop',
-    category: 'Garbage Dumps',
-    status: 'verified',
-    priority: 'medium',
-    date: '2024-01-21',
-    image: 'https://images.pexels.com/photos/2827392/pexels-photo-2827392.jpeg?auto=compress&cs=tinysrgb&w=400',
-    votes: 18,
-    comments: 5
-  },
-  {
-    id: 'CR-2024-1003',
-    title: 'Pack of stray dogs near elementary school',
-    description: 'Group of aggressive stray dogs posing safety risk to children',
-    reporter: 'Mike Wilson',
-    city: 'Chicago',
-    location: 'Lincoln Elementary School',
-    category: 'Stray Animals',
-    status: 'resolved',
-    priority: 'high',
-    date: '2024-01-20',
-    image: 'https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&w=400',
-    votes: 32,
-    comments: 12
-  },
-  {
-    id: 'CR-2024-1004',
-    title: 'Broken street light creating safety hazard',
-    description: 'Street light has been out for weeks, making intersection dangerous at night',
-    reporter: 'Emily Davis',
-    city: 'New York',
-    location: '5th Avenue & Central Park',
-    category: 'Broken Street Lights',
-    status: 'pending',
-    priority: 'medium',
-    date: '2024-01-19',
-    image: 'https://images.pexels.com/photos/327540/pexels-photo-327540.jpeg?auto=compress&cs=tinysrgb&w=400',
-    votes: 15,
-    comments: 3
-  },
-  {
-    id: 'CR-2024-1005',
-    title: 'Open manhole without warning signs',
-    description: 'Dangerous open manhole in busy pedestrian area with no barriers',
-    reporter: 'Alex Brown',
-    city: 'Miami',
-    location: 'Ocean Drive',
-    category: 'Open Manholes',
-    status: 'verified',
-    priority: 'high',
-    date: '2024-01-18',
-    image: 'https://images.pexels.com/photos/1108572/pexels-photo-1108572.jpeg?auto=compress&cs=tinysrgb&w=400',
-    votes: 41,
-    comments: 15
-  },
-  {
-    id: 'CR-2024-1006',
-    title: 'Damaged sidewalk causing accessibility issues',
-    description: 'Cracked and uneven sidewalk making it difficult for wheelchair users',
-    reporter: 'Lisa Garcia',
-    city: 'Los Angeles',
-    location: 'Hollywood Boulevard',
-    category: 'Damaged Infrastructure',
-    status: 'pending',
-    priority: 'medium',
-    date: '2024-01-17',
-    image: 'https://images.pexels.com/photos/1108572/pexels-photo-1108572.jpeg?auto=compress&cs=tinysrgb&w=400',
-    votes: 22,
-    comments: 7
-  },
-  {
-    id: 'CR-2024-1007',
-    title: 'Illegal dumping in residential area',
-    description: 'Large pile of construction debris dumped illegally behind apartments',
-    reporter: 'David Kim',
-    city: 'Chicago',
-    location: 'Oak Street Residential',
-    category: 'Garbage Dumps',
-    status: 'resolved',
-    priority: 'low',
-    date: '2024-01-16',
-    image: 'https://images.pexels.com/photos/2827392/pexels-photo-2827392.jpeg?auto=compress&cs=tinysrgb&w=400',
-    votes: 19,
-    comments: 4
-  },
-  {
-    id: 'CR-2024-1008',
-    title: 'Multiple potholes on residential street',
-    description: 'Several deep potholes making street nearly impassable for cars',
-    reporter: 'Maria Rodriguez',
-    city: 'Miami',
-    location: 'Coral Gables Residential',
-    category: 'Potholes',
-    status: 'verified',
-    priority: 'high',
-    date: '2024-01-15',
-    image: 'https://images.pexels.com/photos/163016/highway-the-way-forward-road-marking-163016.jpeg?auto=compress&cs=tinysrgb&w=400',
-    votes: 28,
-    comments: 9
-  }
-]
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 const categories = ['All Categories', 'Potholes', 'Garbage Dumps', 'Stray Animals', 'Broken Street Lights', 'Open Manholes', 'Damaged Infrastructure']
 const statuses = ['All Status', 'pending', 'verified', 'resolved']
@@ -164,11 +44,33 @@ const getPriorityColor = (priority: string) => {
 }
 
 export default function CommunityPage() {
+  const [communityReports, setCommunityReports] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClientComponentClient()
+
   const [searchCity, setSearchCity] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All Categories')
   const [selectedStatus, setSelectedStatus] = useState('All Status')
   const [selectedPriority, setSelectedPriority] = useState('All Priority')
   const [sortBy, setSortBy] = useState('date')
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) {
+        console.error('Error fetching community reports:', error)
+        setCommunityReports([])
+      } else {
+        setCommunityReports(data || [])
+      }
+      setLoading(false)
+    }
+    fetchReports()
+  }, [])
 
   // Get unique cities for suggestions
   const uniqueCities = useMemo(() => {
@@ -178,11 +80,11 @@ export default function CommunityPage() {
   // Filter and sort reports
   const filteredReports = useMemo(() => {
     let filtered = communityReports.filter(report => {
-      const cityMatch = searchCity === '' || report.city.toLowerCase().includes(searchCity.toLowerCase())
+      // FIXED: Correct boolean check for city filter!
+      const cityMatch = searchCity === '' || report.city?.toLowerCase().includes(searchCity.toLowerCase())
       const categoryMatch = selectedCategory === 'All Categories' || report.category === selectedCategory
       const statusMatch = selectedStatus === 'All Status' || report.status === selectedStatus
       const priorityMatch = selectedPriority === 'All Priority' || report.priority === selectedPriority
-      
       return cityMatch && categoryMatch && statusMatch && priorityMatch
     })
 
@@ -202,7 +104,7 @@ export default function CommunityPage() {
     })
 
     return filtered
-  }, [searchCity, selectedCategory, selectedStatus, selectedPriority, sortBy])
+  }, [searchCity, selectedCategory, selectedStatus, selectedPriority, sortBy, communityReports])
 
   // Get statistics
   const stats = useMemo(() => {
@@ -211,7 +113,7 @@ export default function CommunityPage() {
     const verified = filteredReports.filter(r => r.status === 'verified').length
     const resolved = filteredReports.filter(r => r.status === 'resolved').length
     const totalVotes = filteredReports.reduce((sum, r) => sum + r.votes, 0)
-    
+
     return { total, pending, verified, resolved, totalVotes }
   }, [filteredReports])
 
@@ -247,6 +149,7 @@ export default function CommunityPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+
                 {/* City Search */}
                 <div className="xl:col-span-2">
                   <div className="relative">

@@ -3,10 +3,13 @@
 import { motion } from 'framer-motion'
 import { Award, Bell, Calendar, CheckCircle, Clock, MapPin, Star, TrendingUp, Upload, Users, Zap } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase/client'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+
+// Get the Supabase URL from environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qcshueykyqdkbrlydymr.supabase.co'
 
 
 interface Report {
@@ -38,6 +41,7 @@ interface Badge {
 export default function DashboardPage() {
   const [userReports, setUserReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const supabase = createClientComponentClient();
   const [badges, setBadges] = useState<Badge[]>([
     { name: 'First Reporter', icon: Star, earned: false, description: 'Submitted your first report' },
     { name: 'Community Hero', icon: Users, earned: false, description: 'Helped resolve 10+ issues' },
@@ -66,28 +70,69 @@ export default function DashboardPage() {
     const fetchReports = async () => {
       try {
         setIsLoading(true);
+        // Get the current user
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
+        if (!user) {
+          setUserReports([]);
+          setIsLoading(false);
+          return;
+        }
+        // Fetch only reports submitted by the current user
         const { data: reports, error } = await supabase
           .from('reports')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('reporter_id', user.id)
           .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
+        if (error) {
+          console.error('Supabase query error:', error);
+          throw error;
+        }
         // Format reports with image paths and dates
-        const formattedReports = reports.map(report => ({
-          ...report,
-          // Use the image_path directly as it's already a public-relative path
-          image: report.image_path || null,
-          date: new Date(report.created_at).toISOString().split('T')[0],
-          // Add mock tokens based on status for demo purposes
-          tokens: report.status === 'resolved' ? 75 : report.status === 'verified' ? 50 : 0
-        }));
-        
-        setUserReports(formattedReports);
+        const formattedReports = (reports || []).map(report => {
+          let imageUrl = null;
+          if (report.image_path) {
+            if (report.image_path.startsWith('http')) {
+              imageUrl = report.image_path;
+            } else {
+              const supabaseStorageUrl = `${supabaseUrl}/storage/v1/object/public/`;
+              imageUrl = `${supabaseStorageUrl}${report.image_path}`;
+            }
+          }
+          return {
+            ...report,
+            image: imageUrl,
+            date: new Date(report.created_at).toISOString().split('T')[0],
+            tokens: report.status === 'resolved' ? 75 : report.status === 'verified' ? 50 : 0
+          };
+        });
+        // If the user has no reports, add one example report to showcase the UI
+        let finalReports = formattedReports;
+        if (finalReports.length === 0) {
+          const demoReport: Report = {
+            id: 'demo-1',
+            title: 'Pothole on Main Street',
+            description: 'Large pothole causing traffic slowdowns near the intersection. Needs urgent attention.',
+            category: 'Potholes',
+            status: 'verified',
+            priority: 'medium',
+            image_path: 'https://images.pexels.com/photos/1108305/pexels-photo-1108305.jpeg',
+            location: 'Main St, Downtown District',
+            address: '123 Main St, Downtown District',
+            reporter_id: 'demo-user',
+            confidence: 0.9,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          finalReports = [
+            {
+              ...demoReport,
+              image: demoReport.image_path,
+              date: new Date(demoReport.created_at).toISOString().split('T')[0],
+              tokens: 50,
+            } as Report & { image?: string | null; date?: string; tokens?: number },
+          ];
+        }
+        setUserReports(finalReports);
       } catch (error) {
         console.error('Error fetching reports:', error);
       } finally {
@@ -96,6 +141,24 @@ export default function DashboardPage() {
     };
 
     fetchReports();
+    
+    // Set up a subscription to listen for changes to the reports table
+    const channel = supabase
+      .channel('reports_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'reports' }, 
+        (payload) => {
+          console.log('Reports table changed:', payload);
+          // Refresh the reports when changes occur
+          fetchReports();
+        }
+      ) 
+      .subscribe();
+      
+    // Clean up subscription when component unmounts
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
 

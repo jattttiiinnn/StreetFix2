@@ -33,9 +33,9 @@ export default async function ProfilePage() {
     .eq('id', user.id)
     .single();
 
-  // Get user's reported issues
-  const { data: issues } = await supabase
-    .from('issues')
+  // Get user's reported reports (real data)
+  const { data: reports } = await supabase
+    .from('reports')
     .select('*')
     .eq('reporter_id', user.id)
     .order('created_at', { ascending: false });
@@ -78,7 +78,7 @@ export default async function ProfilePage() {
             <p className="text-muted-foreground">{user.email}</p>
             <div className="mt-4 flex items-center justify-center space-x-4">
               <div className="text-center">
-                <p className="text-2xl font-bold">{issues?.length || 0}</p>
+                <p className="text-2xl font-bold">{reports?.length || 0}</p>
                 <p className="text-sm text-muted-foreground">Reports</p>
               </div>
               <div className="h-8 w-px bg-border" />
@@ -95,27 +95,27 @@ export default async function ProfilePage() {
 
         <div className="space-y-6">
           <h2 className="text-xl font-semibold">Your Recent Reports</h2>
-          {issues && issues.length > 0 ? (
+          {reports && reports.length > 0 ? (
             <div className="space-y-4">
-              {issues.map((issue) => (
-                <Card key={issue.id}>
+              {reports.map((report) => (
+                <Card key={report.id}>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-medium">{issue.title}</h3>
+                        <h3 className="font-medium">{report.title}</h3>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(issue.created_at).toLocaleDateString()}
+                          {new Date(report.created_at).toLocaleDateString()}
                         </p>
                         <span className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${
-                          issue.status === 'resolved' 
+                          report.status === 'resolved' 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {issue.status}
+                          {report.status}
                         </span>
                       </div>
                       <Button variant="ghost" size="sm" asChild>
-                        <a href={`/issues/${issue.id}`}>View</a>
+                        <a href={`/reports/${report.id}`}>View</a>
                       </Button>
                     </div>
                   </CardContent>
