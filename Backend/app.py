@@ -8,16 +8,15 @@ import os
 from transformers import pipeline
 from PIL import Image
 import google.generativeai as genai
-from dotenv import load_dotenv
 
 
-load_dotenv('../.env.local')
 
 # ------------------------
 # Config
 # ------------------------
 # 🔑 Replace with your Gemini API key
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key="AIzaSyClKeqdjgFhqT3lAsFcBEedcWtr-UXskHQ")
+
 # FastAPI app
 app = FastAPI()
 
