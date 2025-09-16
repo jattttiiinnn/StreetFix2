@@ -1,27 +1,53 @@
-# Logs
-logs
-*.log
+# =====================
+# Node / Next.js
+# =====================
+node_modules/
+.next/
+out/
+dist/
+
+# Debug / logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
+*.log
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Env files
 .env
+.env.local
+.env.*.local
 
-venv
+# =====================
+# Python (Backend)
+# =====================
+# Virtual environment
+venv/
+ENV/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# =====================
+# User Uploads / Temp files
+# =====================
+Backend/uploads/
+Test_Images/
+
+# =====================
+# Misc
+# =====================
+.DS_Store
+Thumbs.db
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# VSCode settings (optional, if personal)
+.vscode/
