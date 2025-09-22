@@ -1,7 +1,5 @@
-from fastapi import FastAPI, File, UploadFile, Form, Request
-from fastapi.responses import JSONResponse, HTMLResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, File, UploadFile, Form
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
@@ -10,14 +8,14 @@ from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-
+# Load environment variables
 load_dotenv('../.env.local')
 
 # ------------------------
 # Config
 # ------------------------
-# 🔑 Replace with your Gemini API key
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
 # FastAPI app
 app = FastAPI()
 
@@ -31,10 +29,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 # ------------------------
 # Models
 # ------------------------
-
 realism_model = pipeline("image-classification", model="google/vit-base-patch16-224")
 gemini_model = genai.GenerativeModel("gemini-1.5-flash")
 
@@ -43,9 +41,7 @@ gemini_model = genai.GenerativeModel("gemini-1.5-flash")
 # ------------------------
 def check_with_gemini(image_path, category: str) -> bool:
     img = Image.open(image_path)
-
     prompt = f"Does this image contain a {category}? Answer strictly with 'yes' or 'no'."
-
     response = gemini_model.generate_content([prompt, img])
     answer = (response.text or "").strip().lower()
     return answer == "yes"
@@ -61,8 +57,6 @@ async def upload_file(file: UploadFile = File(...), category: str = Form(...)):
     # Save file
     with open(file_path, "wb") as f:
         f.write(await file.read())
-
-
 
     # --- Realism check
     img = Image.open(file_path)
@@ -86,5 +80,5 @@ async def upload_file(file: UploadFile = File(...), category: str = Form(...)):
 # Run
 # ------------------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))  # Render sets $PORT
+    port = int(os.environ.get("PORT", 8000))
     uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
