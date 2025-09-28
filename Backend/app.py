@@ -14,10 +14,10 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 app = FastAPI()
 
-origins = list(filter(None, [
-    os.getenv("NEXT_PUBLIC_FRONTEND_URL"),  # production frontend (set this in Render)
-    "http://localhost:3000"                 # local dev
-]))
+origins = [
+    "https://street-fix.vercel.app",
+    "http://localhost:3000"
+]
 
 app.add_middleware(
     CORSMiddleware,
