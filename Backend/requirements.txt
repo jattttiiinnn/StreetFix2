@@ -5,3 +5,4 @@ pillow
 # torch
 google-generativeai
 python-multipart
+dotenv
