@@ -1,8 +1,10 @@
 fastapi
 uvicorn
 pillow
-transformers
-torch
+# transformers
+# torch
 google-generativeai
 python-multipart
+dotenv
+
 python-dotenv
