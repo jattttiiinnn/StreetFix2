@@ -33,7 +33,7 @@ app.add_middleware(
 # ------------------------
 
 realism_model = pipeline("image-classification", model="google/vit-base-patch16-224")
-gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+gemini_model = genai.GenerativeModel("gemini-2.5-flash")
 
 # ------------------------
 # Gemini Category Checker
