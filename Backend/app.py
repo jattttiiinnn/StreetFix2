@@ -6,7 +6,6 @@ from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-load_dotenv('../.env.local')
 
 # ------------------------
 # Config
@@ -17,7 +16,7 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 app = FastAPI()
 
 origins = [
-    os.getenv("NEXT_PUBLIC_FRONTEND_URL", "http://localhost:3000"),
+    os.getenv("NEXT_PUBLIC_FRONTEND_URL","http://localhost:3000"),
 ]
 
 app.add_middleware(
