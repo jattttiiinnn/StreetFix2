@@ -40,7 +40,7 @@ async function main() {
   
   // Get Supabase URL
   const supabaseUrl = await askQuestion(
-    'Enter your Supabase Project URL",
+    'Enter your Supabase Project URL',
     envVars.NEXT_PUBLIC_SUPABASE_URL || ''
   );
   

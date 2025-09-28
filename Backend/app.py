@@ -21,9 +21,12 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 # FastAPI app
 app = FastAPI()
 
+origins = [
+    os.getenv("FRONTEND_URL", "http://localhost:3000"),
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # your Next.js app
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -83,4 +86,5 @@ async def upload_file(file: UploadFile = File(...), category: str = Form(...)):
 # Run
 # ------------------------
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))  # Render sets $PORT
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
