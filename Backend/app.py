@@ -14,9 +14,10 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 app = FastAPI()
 
-origins = [
-    os.getenv("NEXT_PUBLIC_FRONTEND_URL","http://localhost:3000"), 
-]
+origins = list(filter(None, [
+    os.getenv("NEXT_PUBLIC_FRONTEND_URL"),  # production frontend (set this in Render)
+    "http://localhost:3000"                 # local dev
+]))
 
 app.add_middleware(
     CORSMiddleware,
