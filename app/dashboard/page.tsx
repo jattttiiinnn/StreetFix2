@@ -41,6 +41,7 @@ interface Badge {
 export default function DashboardPage() {
   const [userReports, setUserReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userTokens, setUserTokens] = useState(0);
   const supabase = createClientComponentClient();
   const [badges, setBadges] = useState<Badge[]>([
     { name: 'First Reporter', icon: Star, earned: false, description: 'Submitted your first report' },
@@ -77,6 +78,18 @@ export default function DashboardPage() {
           setIsLoading(false);
           return;
         }
+        
+        // Fetch user's token count from profiles table
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('points')
+          .eq('id', user.id)
+          .single();
+        
+        if (!profileError && profile) {
+          setUserTokens(profile.points || 0);
+        }
+        
         // Fetch only reports submitted by the current user
         const { data: reports, error } = await supabase
           .from('reports')
@@ -102,7 +115,7 @@ export default function DashboardPage() {
             ...report,
             image: imageUrl,
             date: new Date(report.created_at).toISOString().split('T')[0],
-            tokens: report.status === 'resolved' ? 75 : report.status === 'verified' ? 50 : 0
+            tokens: 50 // All submitted reports now earn 50 tokens immediately
           };
         });
         // If the user has no reports, add one example report to showcase the UI
@@ -182,7 +195,7 @@ const getStatusText = (status: string) => {
   }
 };
 
-  const totalTokens = userReports.reduce((sum, report) => sum + (report.tokens || 0), 0)
+  const totalTokens = userTokens // Use actual tokens from database
   const resolvedReports = userReports.filter(report => report.status === 'resolved').length
   const pendingReports = userReports.filter(report => report.status === 'pending').length
 

@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { motion } from 'framer-motion'
-import { Upload, MapPin, Camera, CheckCircle, Loader2, AlertCircle, Zap, FileImage } from 'lucide-react'
+import { Upload, MapPin, Camera, CheckCircle, Loader2, AlertCircle, Zap, FileImage, Award } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -122,20 +122,20 @@ export default function ReportPage() {
     setIsSubmitting(true)
     setAnalysisStarted(true)
 
-    const formData = new FormData()
-    formData.append("file", selectedFile)
- 
-    formData.append("category",`Analyse the image if there exists ${category} and its matches the given discrption: ${description}`)
+    // First, analyze the image with external backend
+    const analysisFormData = new FormData()
+    analysisFormData.append("file", selectedFile)
+    analysisFormData.append("category",`Analyse the image if there exists ${category} and its matches the given discrption: ${description}`)
 
     
     try {
       const res = await fetch("https://streetfix-backend.onrender.com/upload/", {
         method: "POST",
-        body: formData,
+        body: analysisFormData,
       })
 
       if (!res.ok) {
-        throw new Error("Failed to submit report")
+        throw new Error("Failed to analyze report")
       }
 
       const data = await res.json()
@@ -191,9 +191,12 @@ export default function ReportPage() {
         }
 
         // Upload the file to the server using the API endpoint
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', selectedFile);
+        
         const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
-          body: formData,
+          body: uploadFormData,
         });
 
         if (!uploadResponse.ok) {
@@ -238,6 +241,43 @@ export default function ReportPage() {
         }
 
         console.log('Report submitted successfully:', insertData);
+        
+        // Award 50 tokens to the user for submitting a report
+        try {
+          // First, ensure user profile exists
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({ 
+              id: user.id, 
+              points: 0, 
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }, { 
+              onConflict: 'id',
+              ignoreDuplicates: true 
+            });
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+          }
+
+          // Award tokens by updating the points
+          const { error: tokenError } = await supabase.rpc('increment_user_points', {
+            user_id: user.id,
+            points_to_add: 50
+          });
+
+          if (tokenError) {
+            console.error('Token award error:', tokenError);
+            // Don't throw error here - report submission was successful
+          } else {
+            console.log('Awarded 50 tokens to user');
+          }
+        } catch (tokenErr) {
+          console.error('Error awarding tokens:', tokenErr);
+          // Don't throw error here - report submission was successful
+        }
+        
         setSubmitted(true);
       } catch (dbError) {
         console.error('Database operation failed:', dbError);
@@ -274,9 +314,15 @@ export default function ReportPage() {
                   <CheckCircle className="w-8 h-8 text-white" />
                 </motion.div>
                 <h2 className="text-2xl font-bold mb-4">Report Submitted Successfully!</h2>
-                <p className="text-muted-foreground mb-6">
-                  Thank you for helping make our city better. Your report has been received and is being reviewed.
-                </p>
+                <div className="mb-6">
+                  <p className="text-muted-foreground mb-3">
+                    Thank you for helping make our city better. Your report has been received and is being reviewed.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-government-yellow font-semibold">
+                    <Award className="w-5 h-5" />
+                    <span>+50 Urban Tokens Earned!</span>
+                  </div>
+                </div>
                 <Card className="bg-blue-50 dark:bg-blue-950 p-4 mb-6">
                   <div className="space-y-2 text-sm">
                     <p><strong>Report ID:</strong> UR-2024-{Math.floor(Math.random() * 10000)}</p>

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qcshueykyqdkbrlydymr.supabase.co'
 const categories = ['All Categories', 'Potholes', 'Garbage Dumps', 'Stray Animals', 'Broken Street Lights', 'Open Manholes', 'Damaged Infrastructure']
 const statuses = ['All Status', 'pending', 'verified', 'resolved']
 const priorities = ['All Priority', 'low', 'medium', 'high']
@@ -65,7 +66,24 @@ export default function CommunityPage() {
         console.error('Error fetching community reports:', error)
         setCommunityReports([])
       } else {
-        setCommunityReports(data || [])
+        // Format reports with proper image URLs
+        const formattedReports = (data || []).map(report => {
+          let imageUrl = null;
+          if (report.image_path) {
+            if (report.image_path.startsWith('http')) {
+              imageUrl = report.image_path;
+            } else {
+              const supabaseStorageUrl = `${supabaseUrl}/storage/v1/object/public/`;
+              imageUrl = `${supabaseStorageUrl}${report.image_path}`;
+            }
+          }
+          return {
+            ...report,
+            image: imageUrl,
+            date: new Date(report.created_at).toISOString().split('T')[0],
+          };
+        });
+        setCommunityReports(formattedReports)
       }
       setLoading(false)
     }
@@ -281,9 +299,12 @@ export default function CommunityPage() {
                   <Card className="h-full shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
                     <div className="relative">
                       <img
-                        src={report.image}
+                        src={report.image || 'https://images.pexels.com/photos/1108305/pexels-photo-1108305.jpeg'}
                         alt={report.title}
                         className="w-full h-48 object-cover rounded-t-lg"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.pexels.com/photos/1108305/pexels-photo-1108305.jpeg';
+                        }}
                       />
                       <div className="absolute top-3 right-3 flex gap-2">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(report.priority)}`}>
